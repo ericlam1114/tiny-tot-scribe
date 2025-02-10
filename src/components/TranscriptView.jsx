@@ -1,5 +1,5 @@
 
-export const TranscriptView = ({ transcript, isRecording, onGenerateSoap }) => {
+export const TranscriptView = ({ transcript, isRecording, onGenerateSoap, isGenerating }) => {
   return (
     <div className="relative min-h-[300px] p-4 rounded-lg bg-scribe-gray-light border border-scribe-gray/20">
       {isRecording && (
@@ -17,9 +17,17 @@ export const TranscriptView = ({ transcript, isRecording, onGenerateSoap }) => {
             <div>
               <button
                 onClick={onGenerateSoap}
-                className="inline-flex items-center px-4 py-2 rounded-md bg-scribe-purple text-white hover:bg-scribe-purple-dark transition-colors"
+                disabled={isGenerating}
+                className="inline-flex items-center px-4 py-2 rounded-md bg-scribe-purple text-white hover:bg-scribe-purple-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Generate SOAP Note
+                {isGenerating ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Generating...
+                  </>
+                ) : (
+                  "Generate SOAP Note"
+                )}
               </button>
             </div>
           </div>

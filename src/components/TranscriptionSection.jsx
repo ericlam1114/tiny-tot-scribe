@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
@@ -21,50 +20,58 @@ export const TranscriptionSection = () => {
     plan: "",
   });
   const [activeTab, setActiveTab] = useState("transcript");
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const generateSoapNote = (transcriptText) => {
-    const lines = transcriptText.split('. ');
-    const categorizedContent = {
-      subjective: [],
-      objective: [],
-      assessment: [],
-      plan: [],
-    };
+  const generateSoapNote = async () => {
+    if (!transcript) {
+      toast({
+        title: "No Transcript Available",
+        description: "Please record or enter some text first.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    const keywords = {
-      subjective: ['patient reports', 'complains of', 'states', 'feels', 'describes', 'denies', 'admits'],
-      objective: ['vital signs', 'examination shows', 'observed', 'temperature', 'blood pressure', 'pulse', 'appears', 'reveals'],
-      assessment: ['diagnosis', 'assessment', 'condition', 'impression', 'likely', 'probably', 'suspected'],
-      plan: ['plan', 'recommend', 'prescribe', 'follow up', 'refer', 'ordered', 'schedule', 'treatment']
-    };
-
-    lines.forEach(line => {
-      line = line.toLowerCase();
-      
-      for (const [category, categoryKeywords] of Object.entries(keywords)) {
-        if (categoryKeywords.some(keyword => line.includes(keyword))) {
-          categorizedContent[category].push(line);
+    setIsGenerating(true);
+    try {
+      const response = await fetch(
+        `${supabase.supabaseUrl}/functions/v1/generate-soap`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${supabase.supabaseKey}`,
+          },
+          body: JSON.stringify({ transcript }),
         }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to generate SOAP note");
       }
-    });
 
-    setSoapNote({
-      subjective: categorizedContent.subjective.join('. '),
-      objective: categorizedContent.objective.join('. '),
-      assessment: categorizedContent.assessment.join('. '),
-      plan: categorizedContent.plan.join('. '),
-    });
-
-    setActiveTab("soap");
-    toast({
-      title: "SOAP Note Generated",
-      description: "The transcript has been analyzed and categorized.",
-    });
+      const generatedNote = await response.json();
+      setSoapNote(generatedNote);
+      setActiveTab("soap");
+      toast({
+        title: "SOAP Note Generated",
+        description: "The AI has analyzed your transcript and generated a SOAP note.",
+      });
+    } catch (error) {
+      console.error("Error generating SOAP note:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate SOAP note. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleGenerateSoap = () => {
     if (transcript) {
-      generateSoapNote(transcript);
+      generateSoapNote();
     } else {
       toast({
         title: "No Transcript Available",
@@ -203,7 +210,8 @@ export const TranscriptionSection = () => {
           <TranscriptView 
             transcript={transcript} 
             isRecording={isRecording} 
-            onGenerateSoap={handleGenerateSoap}
+            onGenerateSoap={generateSoapNote}
+            isGenerating={isGenerating}
           />
         </TabsContent>
 
