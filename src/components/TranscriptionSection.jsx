@@ -1,13 +1,13 @@
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Mic, MicOff, Save } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+import { RecordingControls } from "./RecordingControls";
+import { TranscriptView } from "./TranscriptView";
+import { SoapNoteForm } from "./SoapNoteForm";
 
 export const TranscriptionSection = () => {
   const { user } = useAuth();
@@ -23,7 +23,6 @@ export const TranscriptionSection = () => {
   const [activeTab, setActiveTab] = useState("transcript");
 
   const generateSoapNote = (transcriptText) => {
-    // Simple keyword-based categorization
     const lines = transcriptText.split('. ');
     const categorizedContent = {
       subjective: [],
@@ -42,7 +41,6 @@ export const TranscriptionSection = () => {
     lines.forEach(line => {
       line = line.toLowerCase();
       
-      // Check each category's keywords
       for (const [category, categoryKeywords] of Object.entries(keywords)) {
         if (categoryKeywords.some(keyword => line.includes(keyword))) {
           categorizedContent[category].push(line);
@@ -50,7 +48,6 @@ export const TranscriptionSection = () => {
       }
     });
 
-    // Update SOAP note state with categorized content
     setSoapNote({
       subjective: categorizedContent.subjective.join('. '),
       objective: categorizedContent.objective.join('. '),
@@ -76,7 +73,6 @@ export const TranscriptionSection = () => {
             const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
               finalTranscript += transcript + " ";
-              // Generate SOAP note when we get final transcript
               generateSoapNote(finalTranscript);
             } else {
               interimTranscript += transcript;
@@ -147,7 +143,7 @@ export const TranscriptionSection = () => {
     try {
       const { error } = await supabase.from("patient_notes").insert({
         content: transcript,
-        soap_format: JSON.stringify(soapNote),
+        soap_format: soapNote,
         user_id: user?.id,
       });
 
@@ -173,35 +169,11 @@ export const TranscriptionSection = () => {
         <h2 className="text-2xl font-semibold text-scribe-purple-dark">
           Patient Notes
         </h2>
-        <div className="flex gap-2">
-          <Button
-            onClick={toggleRecording}
-            variant="outline"
-            className={`
-              transition-all duration-300 
-              ${
-                isRecording
-                  ? "bg-scribe-teal text-white hover:bg-scribe-teal-dark"
-                  : "border-scribe-teal text-scribe-teal hover:bg-scribe-teal/10"
-              }
-            `}
-          >
-            {isRecording ? (
-              <MicOff className="w-5 h-5 mr-2" />
-            ) : (
-              <Mic className="w-5 h-5 mr-2" />
-            )}
-            {isRecording ? "Stop Recording" : "Start Recording"}
-          </Button>
-          <Button
-            onClick={saveNote}
-            variant="outline"
-            className="border-scribe-purple text-scribe-purple hover:bg-scribe-purple/10"
-          >
-            <Save className="w-5 h-5 mr-2" />
-            Save Note
-          </Button>
-        </div>
+        <RecordingControls 
+          isRecording={isRecording}
+          onToggleRecording={toggleRecording}
+          onSaveNote={saveNote}
+        />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -211,74 +183,11 @@ export const TranscriptionSection = () => {
         </TabsList>
 
         <TabsContent value="transcript">
-          <div className="relative min-h-[300px] p-4 rounded-lg bg-scribe-gray-light border border-scribe-gray/20">
-            {isRecording && (
-              <div className="absolute top-4 right-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-sm text-scribe-gray">Recording...</span>
-                </div>
-              </div>
-            )}
-            <div className="prose max-w-none">
-              {transcript || (
-                <p className="text-scribe-gray italic">
-                  {isRecording
-                    ? "Listening... Speak clearly into your microphone."
-                    : "Click 'Start Recording' to begin transcription."}
-                </p>
-              )}
-            </div>
-          </div>
+          <TranscriptView transcript={transcript} isRecording={isRecording} />
         </TabsContent>
 
         <TabsContent value="soap">
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold mb-2 text-scribe-purple-dark">
-                Subjective
-              </h3>
-              <Textarea
-                value={soapNote.subjective}
-                onChange={handleSoapChange("subjective")}
-                placeholder="Patient's symptoms, concerns, and history..."
-                className="min-h-[100px]"
-              />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2 text-scribe-purple-dark">
-                Objective
-              </h3>
-              <Textarea
-                value={soapNote.objective}
-                onChange={handleSoapChange("objective")}
-                placeholder="Physical examination findings, vital signs, lab results..."
-                className="min-h-[100px]"
-              />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2 text-scribe-purple-dark">
-                Assessment
-              </h3>
-              <Textarea
-                value={soapNote.assessment}
-                onChange={handleSoapChange("assessment")}
-                placeholder="Diagnosis, differential diagnoses, clinical reasoning..."
-                className="min-h-[100px]"
-              />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2 text-scribe-purple-dark">
-                Plan
-              </h3>
-              <Textarea
-                value={soapNote.plan}
-                onChange={handleSoapChange("plan")}
-                placeholder="Treatment plan, medications, follow-up..."
-                className="min-h-[100px]"
-              />
-            </div>
-          </div>
+          <SoapNoteForm soapNote={soapNote} onSoapChange={handleSoapChange} />
         </TabsContent>
       </Tabs>
     </Card>
