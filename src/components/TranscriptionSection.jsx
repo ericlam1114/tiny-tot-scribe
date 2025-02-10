@@ -1,18 +1,17 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecordingControls } from "./RecordingControls";
 import { TranscriptView } from "./TranscriptView";
 import { SoapNoteForm } from "./SoapNoteForm";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { generateSoapNote, saveSoapNote } from "@/services/soapNoteService";
 
 export const TranscriptionSection = () => {
   const { user } = useAuth();
-  const [isRecording, setIsRecording] = useState(false);
-  const [transcript, setTranscript] = useState("");
-  const [recognition, setRecognition] = useState(null);
+  const { isRecording, transcript, toggleRecording } = useSpeechRecognition();
   const [soapNote, setSoapNote] = useState({
     subjective: "",
     objective: "",
@@ -22,138 +21,14 @@ export const TranscriptionSection = () => {
   const [activeTab, setActiveTab] = useState("transcript");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const generateSoapNote = async () => {
-    if (!transcript) {
-      toast({
-        title: "No Transcript Available",
-        description: "Please record or enter some text first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleGenerateSoap = async () => {
     setIsGenerating(true);
-    try {
-      const response = await fetch(
-        `${supabase.supabaseUrl}/functions/v1/generate-soap`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${supabase.supabaseKey}`,
-          },
-          body: JSON.stringify({ transcript }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to generate SOAP note");
-      }
-
-      const generatedNote = await response.json();
+    const generatedNote = await generateSoapNote(transcript);
+    if (generatedNote) {
       setSoapNote(generatedNote);
       setActiveTab("soap");
-      toast({
-        title: "SOAP Note Generated",
-        description: "The AI has analyzed your transcript and generated a SOAP note.",
-      });
-    } catch (error) {
-      console.error("Error generating SOAP note:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate SOAP note. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
     }
-  };
-
-  const handleGenerateSoap = () => {
-    if (transcript) {
-      generateSoapNote();
-    } else {
-      toast({
-        title: "No Transcript Available",
-        description: "Please record or enter some text first.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
-      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-      if (SpeechRecognitionAPI) {
-        const recognition = new SpeechRecognitionAPI();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-
-        recognition.onresult = (event) => {
-          let interimTranscript = "";
-          let finalTranscript = "";
-
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              finalTranscript += transcript + " ";
-            } else {
-              interimTranscript += transcript;
-            }
-          }
-
-          setTranscript((prev) => {
-            const newTranscript = prev + finalTranscript;
-            return newTranscript;
-          });
-        };
-
-        recognition.onerror = (event) => {
-          console.error("Speech recognition error", event);
-          toast({
-            title: "Error",
-            description: "There was an error with the speech recognition",
-            variant: "destructive",
-          });
-          setIsRecording(false);
-        };
-
-        setRecognition(recognition);
-      } else {
-        toast({
-          title: "Not Supported",
-          description: "Speech recognition is not supported in this browser",
-          variant: "destructive",
-        });
-      }
-    }
-
-    return () => {
-      if (recognition) {
-        recognition.stop();
-      }
-    };
-  }, []);
-
-  const toggleRecording = () => {
-    if (!recognition) return;
-
-    if (!isRecording) {
-      recognition.start();
-      setIsRecording(true);
-      toast({
-        title: "Recording Started",
-        description: "Speak clearly into your microphone",
-      });
-    } else {
-      recognition.stop();
-      setIsRecording(false);
-      toast({
-        title: "Recording Stopped",
-        description: "Transcription saved",
-      });
-    }
+    setIsGenerating(false);
   };
 
   const handleSoapChange = (section) => (e) => {
@@ -163,28 +38,8 @@ export const TranscriptionSection = () => {
     }));
   };
 
-  const saveNote = async () => {
-    try {
-      const { error } = await supabase.from("patient_notes").insert({
-        content: transcript,
-        soap_format: soapNote,
-        user_id: user?.id,
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Note saved successfully",
-      });
-    } catch (error) {
-      console.error("Error saving note:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save note",
-        variant: "destructive",
-      });
-    }
+  const handleSaveNote = () => {
+    saveSoapNote(user?.id, transcript, soapNote);
   };
 
   return (
@@ -196,7 +51,7 @@ export const TranscriptionSection = () => {
         <RecordingControls 
           isRecording={isRecording}
           onToggleRecording={toggleRecording}
-          onSaveNote={saveNote}
+          onSaveNote={handleSaveNote}
         />
       </div>
 
@@ -210,7 +65,7 @@ export const TranscriptionSection = () => {
           <TranscriptView 
             transcript={transcript} 
             isRecording={isRecording} 
-            onGenerateSoap={generateSoapNote}
+            onGenerateSoap={handleGenerateSoap}
             isGenerating={isGenerating}
           />
         </TabsContent>
