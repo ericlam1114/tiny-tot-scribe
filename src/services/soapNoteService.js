@@ -13,33 +13,23 @@ export const generateSoapNote = async (transcript) => {
   }
 
   try {
-    const response = await fetch(
-      `${supabase.supabaseUrl}/functions/v1/generate-soap`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${supabase.supabaseKey}`,
-        },
-        body: JSON.stringify({ transcript }),
-      }
-    );
+    const { data, error } = await supabase.functions.invoke('generate-soap', {
+      body: { transcript },
+    });
 
-    if (!response.ok) {
-      throw new Error("Failed to generate SOAP note");
-    }
+    if (error) throw error;
+    if (!data) throw new Error('No data received from the API');
 
-    const generatedNote = await response.json();
     toast({
       title: "SOAP Note Generated",
       description: "The AI has analyzed your transcript and generated a SOAP note.",
     });
-    return generatedNote;
+    return data;
   } catch (error) {
     console.error("Error generating SOAP note:", error);
     toast({
       title: "Error",
-      description: "Failed to generate SOAP note. Please try again.",
+      description: error.message || "Failed to generate SOAP note. Please try again.",
       variant: "destructive",
     });
     return null;
