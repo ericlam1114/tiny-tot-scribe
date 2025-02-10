@@ -1,7 +1,6 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import OpenAI from "https://deno.land/x/openai@v4.24.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,34 +21,45 @@ serve(async (req) => {
 
     console.log('Processing transcript:', transcript.substring(0, 100) + '...');
 
-    const openai = new OpenAI({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a medical assistant helping to generate SOAP notes from medical transcripts. 
+            Format the response as a JSON object with four sections: subjective, objective, assessment, and plan.
+            Keep the original medical terminology and be precise.`
+          },
+          {
+            role: 'user',
+            content: `Please analyze this medical transcript and create a SOAP note from it: ${transcript}`
+          }
+        ],
+      }),
     });
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a medical assistant helping to generate SOAP notes from medical transcripts. 
-          Format the response as a JSON object with four sections: subjective, objective, assessment, and plan.
-          Keep the original medical terminology and be precise.`
-        },
-        {
-          role: 'user',
-          content: `Please analyze this medical transcript and create a SOAP note from it: ${transcript}`
-        }
-      ],
-    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('OpenAI API error:', errorData);
+      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+    }
 
-    if (!completion.choices?.[0]?.message?.content) {
-      console.error('Unexpected OpenAI response format:', completion);
+    const data = await response.json();
+    
+    if (!data.choices?.[0]?.message?.content) {
+      console.error('Unexpected OpenAI response format:', data);
       throw new Error('Invalid response from OpenAI');
     }
 
     let soapNote;
     try {
-      soapNote = JSON.parse(completion.choices[0].message.content);
+      soapNote = JSON.parse(data.choices[0].message.content);
     } catch (error) {
       console.error('Error parsing OpenAI response as JSON:', error);
       throw new Error('Failed to parse SOAP note format');
