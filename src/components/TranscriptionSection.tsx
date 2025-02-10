@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Mic, MicOff, Edit2, Save } from "lucide-react";
+import { Mic, MicOff, Save } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +30,7 @@ export const TranscriptionSection = () => {
   const [activeTab, setActiveTab] = useState("transcript");
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && window.SpeechRecognition || window.webkitSpeechRecognition) {
       const SpeechRecognitionAPI =
         window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -115,7 +115,7 @@ export const TranscriptionSection = () => {
     try {
       const { error } = await supabase.from("patient_notes").insert({
         content: transcript,
-        soap_format: soapNote,
+        soap_format: JSON.stringify(soapNote),
         user_id: user?.id,
       });
 
