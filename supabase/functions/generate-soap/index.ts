@@ -32,7 +32,10 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a medical assistant helping to generate SOAP notes from medical transcripts. Format the response as a JSON object with four sections: subjective, objective, assessment, and plan. Keep the original medical terminology and be precise.'
+            content: `You are a medical assistant helping to generate SOAP notes from medical transcripts. 
+            Generate a SOAP note with exactly these four fields: subjective (a string summarizing patient's symptoms and history), 
+            objective (a string for examination findings), assessment (a string for diagnosis and clinical reasoning), 
+            and plan (a string for treatment plan). Each field should be a simple string, not an object.`
           },
           {
             role: 'user',
@@ -58,6 +61,24 @@ serve(async (req) => {
     let soapNote;
     try {
       soapNote = JSON.parse(data.choices[0].message.content);
+      
+      // Ensure each field is a string
+      const formattedSoapNote = {
+        subjective: typeof soapNote.subjective === 'object' ? 
+          Object.values(soapNote.subjective).join('\n') : 
+          soapNote.subjective || '',
+        objective: typeof soapNote.objective === 'object' ? 
+          Object.values(soapNote.objective).join('\n') : 
+          soapNote.objective || '',
+        assessment: typeof soapNote.assessment === 'object' ? 
+          Object.values(soapNote.assessment).join('\n') : 
+          soapNote.assessment || '',
+        plan: typeof soapNote.plan === 'object' ? 
+          Object.values(soapNote.plan).join('\n') : 
+          soapNote.plan || ''
+      };
+
+      soapNote = formattedSoapNote;
     } catch (error) {
       console.error('Error parsing OpenAI response as JSON:', error);
       throw new Error('Failed to parse SOAP note format');
