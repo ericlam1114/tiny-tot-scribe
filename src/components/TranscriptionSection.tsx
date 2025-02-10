@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,45 +10,48 @@ export const TranscriptionSection = () => {
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "SpeechRecognition" in window || "webkitSpeechRecognition" in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
+    if (typeof window !== "undefined") {
+      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
       
-      recognition.onresult = (event) => {
-        let interimTranscript = "";
-        let finalTranscript = "";
+      if (SpeechRecognitionAPI) {
+        const recognition = new SpeechRecognitionAPI();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+          let interimTranscript = "";
+          let finalTranscript = "";
 
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript + " ";
-          } else {
-            interimTranscript += transcript;
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript + " ";
+            } else {
+              interimTranscript += transcript;
+            }
           }
-        }
 
-        setTranscript((prev) => prev + finalTranscript);
-      };
+          setTranscript((prev) => prev + finalTranscript);
+        };
 
-      recognition.onerror = (event) => {
-        console.error("Speech recognition error", event.error);
+        recognition.onerror = (event) => {
+          console.error("Speech recognition error", event);
+          toast({
+            title: "Error",
+            description: "There was an error with the speech recognition",
+            variant: "destructive",
+          });
+          setIsRecording(false);
+        };
+
+        setRecognition(recognition);
+      } else {
         toast({
-          title: "Error",
-          description: "There was an error with the speech recognition",
+          title: "Not Supported",
+          description: "Speech recognition is not supported in this browser",
           variant: "destructive",
         });
-        setIsRecording(false);
-      };
-
-      setRecognition(recognition);
-    } else {
-      toast({
-        title: "Not Supported",
-        description: "Speech recognition is not supported in this browser",
-        variant: "destructive",
-      });
+      }
     }
 
     return () => {
