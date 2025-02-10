@@ -1,5 +1,5 @@
 
-export const TranscriptView = ({ transcript, isRecording }) => {
+export const TranscriptView = ({ transcript, isRecording, onGenerateSoap }) => {
   return (
     <div className="relative min-h-[300px] p-4 rounded-lg bg-scribe-gray-light border border-scribe-gray/20">
       {isRecording && (
@@ -11,7 +11,17 @@ export const TranscriptView = ({ transcript, isRecording }) => {
         </div>
       )}
       <div className="prose max-w-none">
-        {transcript || (
+        {transcript ? (
+          <div className="space-y-4">
+            <div>{transcript}</div>
+            <button
+              onClick={onGenerateSoap}
+              className="text-sm px-3 py-1.5 rounded-md bg-scribe-purple text-white hover:bg-scribe-purple-dark transition-colors"
+            >
+              Generate SOAP Note
+            </button>
+          </div>
+        ) : (
           <p className="text-scribe-gray italic">
             {isRecording
               ? "Listening... Speak clearly into your microphone."

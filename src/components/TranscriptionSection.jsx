@@ -54,6 +54,24 @@ export const TranscriptionSection = () => {
       assessment: categorizedContent.assessment.join('. '),
       plan: categorizedContent.plan.join('. '),
     });
+
+    setActiveTab("soap");
+    toast({
+      title: "SOAP Note Generated",
+      description: "The transcript has been analyzed and categorized.",
+    });
+  };
+
+  const handleGenerateSoap = () => {
+    if (transcript) {
+      generateSoapNote(transcript);
+    } else {
+      toast({
+        title: "No Transcript Available",
+        description: "Please record or enter some text first.",
+        variant: "destructive",
+      });
+    }
   };
 
   useEffect(() => {
@@ -73,7 +91,6 @@ export const TranscriptionSection = () => {
             const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
               finalTranscript += transcript + " ";
-              generateSoapNote(finalTranscript);
             } else {
               interimTranscript += transcript;
             }
@@ -183,7 +200,11 @@ export const TranscriptionSection = () => {
         </TabsList>
 
         <TabsContent value="transcript">
-          <TranscriptView transcript={transcript} isRecording={isRecording} />
+          <TranscriptView 
+            transcript={transcript} 
+            isRecording={isRecording} 
+            onGenerateSoap={handleGenerateSoap}
+          />
         </TabsContent>
 
         <TabsContent value="soap">
