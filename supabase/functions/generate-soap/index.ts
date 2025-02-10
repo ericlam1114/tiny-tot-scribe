@@ -33,9 +33,13 @@ serve(async (req) => {
           {
             role: 'system',
             content: `You are a medical assistant helping to generate SOAP notes from medical transcripts. 
-            Generate a SOAP note with exactly these four fields: subjective (a string summarizing patient's symptoms and history), 
-            objective (a string for examination findings), assessment (a string for diagnosis and clinical reasoning), 
-            and plan (a string for treatment plan). Each field should be a simple string, not an object.`
+            Your response must be a valid JSON object with exactly these four string fields:
+            {
+              "subjective": "string with patient's symptoms and history",
+              "objective": "string with examination findings",
+              "assessment": "string with diagnosis and clinical reasoning",
+              "plan": "string with treatment plan"
+            }`
           },
           {
             role: 'user',
@@ -64,18 +68,18 @@ serve(async (req) => {
       
       // Ensure each field is a string
       const formattedSoapNote = {
-        subjective: typeof soapNote.subjective === 'object' ? 
-          Object.values(soapNote.subjective).join('\n') : 
-          soapNote.subjective || '',
-        objective: typeof soapNote.objective === 'object' ? 
-          Object.values(soapNote.objective).join('\n') : 
-          soapNote.objective || '',
-        assessment: typeof soapNote.assessment === 'object' ? 
-          Object.values(soapNote.assessment).join('\n') : 
-          soapNote.assessment || '',
-        plan: typeof soapNote.plan === 'object' ? 
-          Object.values(soapNote.plan).join('\n') : 
-          soapNote.plan || ''
+        subjective: typeof soapNote.subjective === 'string' ? 
+          soapNote.subjective : 
+          'No subjective information provided',
+        objective: typeof soapNote.objective === 'string' ? 
+          soapNote.objective : 
+          'No objective information provided',
+        assessment: typeof soapNote.assessment === 'string' ? 
+          soapNote.assessment : 
+          'No assessment provided',
+        plan: typeof soapNote.plan === 'string' ? 
+          soapNote.plan : 
+          'No plan provided'
       };
 
       soapNote = formattedSoapNote;
