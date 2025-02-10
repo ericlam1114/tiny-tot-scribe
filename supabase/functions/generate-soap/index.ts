@@ -21,7 +21,7 @@ serve(async (req) => {
 
     console.log('Processing transcript:', transcript.substring(0, 100) + '...');
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
@@ -32,29 +32,27 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a medical assistant helping to generate SOAP notes from medical transcripts. 
-            Format the response as a JSON object with four sections: subjective, objective, assessment, and plan.
-            Keep the original medical terminology and be precise.`
+            content: 'You are a medical assistant helping to generate SOAP notes from medical transcripts. Format the response as a JSON object with four sections: subjective, objective, assessment, and plan. Keep the original medical terminology and be precise.'
           },
           {
             role: 'user',
-            content: `Please analyze this medical transcript and create a SOAP note from it: ${transcript}`
+            content: transcript
           }
         ],
       }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
+    if (!openaiResponse.ok) {
+      const errorData = await openaiResponse.json();
       console.error('OpenAI API error:', errorData);
       throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
     }
 
-    const data = await response.json();
-    
+    const data = await openaiResponse.json();
+    console.log('OpenAI response:', JSON.stringify(data));
+
     if (!data.choices?.[0]?.message?.content) {
-      console.error('Unexpected OpenAI response format:', data);
-      throw new Error('Invalid response from OpenAI');
+      throw new Error('Invalid response format from OpenAI');
     }
 
     let soapNote;
