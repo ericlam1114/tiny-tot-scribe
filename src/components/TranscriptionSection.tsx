@@ -1,14 +1,13 @@
 
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Mic, MicOff, Save } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RecordingControls } from "./transcription/RecordingControls";
-import { TranscriptDisplay } from "./transcription/TranscriptDisplay";
-import { RecordingIndicator } from "./transcription/RecordingIndicator";
-import { SoapNoteEditor } from "./transcription/SoapNoteEditor";
+import { Textarea } from "@/components/ui/textarea";
 
 interface SoapNote {
   subjective: string;
@@ -31,8 +30,9 @@ export const TranscriptionSection = () => {
   const [activeTab, setActiveTab] = useState("transcript");
 
   useEffect(() => {
-    if (typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
-      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (typeof window !== "undefined" && window.SpeechRecognition || window.webkitSpeechRecognition) {
+      const SpeechRecognitionAPI =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
 
       if (SpeechRecognitionAPI) {
         const recognition = new SpeechRecognitionAPI();
@@ -102,10 +102,12 @@ export const TranscriptionSection = () => {
     }
   };
 
-  const handleSoapChange = (section: keyof SoapNote, value: string) => {
+  const handleSoapChange = (section: keyof SoapNote) => (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
     setSoapNote((prev) => ({
       ...prev,
-      [section]: value,
+      [section]: e.target.value,
     }));
   };
 
@@ -134,39 +136,117 @@ export const TranscriptionSection = () => {
   };
 
   return (
-    <Card className="glass-card p-6 w-full max-w-4xl mx-auto transition-all duration-300">
+    <Card className="p-6 w-full max-w-4xl mx-auto bg-white/80 backdrop-blur-sm shadow-lg border border-scribe-teal/20 transition-all duration-300">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold text-foreground">
+        <h2 className="text-2xl font-semibold text-scribe-purple-dark">
           Patient Notes
         </h2>
-        <RecordingControls
-          isRecording={isRecording}
-          onToggleRecording={toggleRecording}
-          onSaveNote={saveNote}
-        />
+        <div className="flex gap-2">
+          <Button
+            onClick={toggleRecording}
+            variant="outline"
+            className={`
+              transition-all duration-300 
+              ${
+                isRecording
+                  ? "bg-scribe-teal text-white hover:bg-scribe-teal-dark"
+                  : "border-scribe-teal text-scribe-teal hover:bg-scribe-teal/10"
+              }
+            `}
+          >
+            {isRecording ? (
+              <MicOff className="w-5 h-5 mr-2" />
+            ) : (
+              <Mic className="w-5 h-5 mr-2" />
+            )}
+            {isRecording ? "Stop Recording" : "Start Recording"}
+          </Button>
+          <Button
+            onClick={saveNote}
+            variant="outline"
+            className="border-scribe-purple text-scribe-purple hover:bg-scribe-purple/10"
+          >
+            <Save className="w-5 h-5 mr-2" />
+            Save Note
+          </Button>
+        </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-4 bg-secondary">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
           <TabsTrigger value="transcript">Transcript</TabsTrigger>
           <TabsTrigger value="soap">SOAP Note</TabsTrigger>
         </TabsList>
 
         <TabsContent value="transcript">
-          <div className="relative">
-            <RecordingIndicator isRecording={isRecording} />
-            <TranscriptDisplay
-              transcript={transcript}
-              isRecording={isRecording}
-            />
+          <div className="relative min-h-[300px] p-4 rounded-lg bg-scribe-gray-light border border-scribe-gray/20">
+            {isRecording && (
+              <div className="absolute top-4 right-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-sm text-scribe-gray">Recording...</span>
+                </div>
+              </div>
+            )}
+            <div className="prose max-w-none">
+              {transcript || (
+                <p className="text-scribe-gray italic">
+                  {isRecording
+                    ? "Listening... Speak clearly into your microphone."
+                    : "Click 'Start Recording' to begin transcription."}
+                </p>
+              )}
+            </div>
           </div>
         </TabsContent>
 
         <TabsContent value="soap">
-          <SoapNoteEditor
-            soapNote={soapNote}
-            onSoapChange={handleSoapChange}
-          />
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-2 text-scribe-purple-dark">
+                Subjective
+              </h3>
+              <Textarea
+                value={soapNote.subjective}
+                onChange={handleSoapChange("subjective")}
+                placeholder="Patient's symptoms, concerns, and history..."
+                className="min-h-[100px]"
+              />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2 text-scribe-purple-dark">
+                Objective
+              </h3>
+              <Textarea
+                value={soapNote.objective}
+                onChange={handleSoapChange("objective")}
+                placeholder="Physical examination findings, vital signs, lab results..."
+                className="min-h-[100px]"
+              />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2 text-scribe-purple-dark">
+                Assessment
+              </h3>
+              <Textarea
+                value={soapNote.assessment}
+                onChange={handleSoapChange("assessment")}
+                placeholder="Diagnosis, differential diagnoses, clinical reasoning..."
+                className="min-h-[100px]"
+              />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2 text-scribe-purple-dark">
+                Plan
+              </h3>
+              <Textarea
+                value={soapNote.plan}
+                onChange={handleSoapChange("plan")}
+                placeholder="Treatment plan, medications, follow-up..."
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </Card>
