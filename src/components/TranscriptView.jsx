@@ -12,14 +12,16 @@ export const TranscriptView = ({ transcript, isRecording, onGenerateSoap }) => {
       )}
       <div className="prose max-w-none">
         {transcript ? (
-          <div className="space-y-4">
-            <div>{transcript}</div>
-            <button
-              onClick={onGenerateSoap}
-              className="text-sm px-3 py-1.5 rounded-md bg-scribe-purple text-white hover:bg-scribe-purple-dark transition-colors"
-            >
-              Generate SOAP Note
-            </button>
+          <div className="flex flex-col gap-4">
+            <p>{transcript}</p>
+            <div>
+              <button
+                onClick={onGenerateSoap}
+                className="inline-flex items-center px-4 py-2 rounded-md bg-scribe-purple text-white hover:bg-scribe-purple-dark transition-colors"
+              >
+                Generate SOAP Note
+              </button>
+            </div>
           </div>
         ) : (
           <p className="text-scribe-gray italic">
