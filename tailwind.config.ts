@@ -53,24 +53,12 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Custom colors
-        scribe: {
-          teal: {
-            light: "#E6F4F1",
-            DEFAULT: "#4DB6AC",
-            dark: "#00867D",
-          },
-          purple: {
-            light: "#F3E5F5",
-            DEFAULT: "#AB47BC",
-            dark: "#790E8B",
-          },
-          gray: {
-            light: "#F5F5F5",
-            DEFAULT: "#9E9E9E",
-            dark: "#424242",
-          },
-        },
+      },
+      backgroundImage: {
+        'grid-blue-500': 'linear-gradient(to right, rgb(59 130 246 / 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgb(59 130 246 / 0.1) 1px, transparent 1px)',
+      },
+      backgroundSize: {
+        'grid': '4rem 4rem',
       },
       borderRadius: {
         lg: "var(--radius)",
